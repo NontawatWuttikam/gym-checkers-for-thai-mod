@@ -20,7 +20,6 @@ class Checkers:
     n_positions = int(size**2 // 2)
     n_per_row = int(size // 2)
 
-    # TODO change players to top/bottom players
     all_players = ["black", "white"]
     all_piece_types = ["men", "kings"]
 
@@ -67,7 +66,6 @@ class Checkers:
         self._last_moved_piece = None
 
         # LUT for the neighboring 4 squares in each directions respectively. None for a missing neighbor
-        # XXX there is another way to find neighbors (consider [sq+4, sq+5, sq-4, sq-5])
         self.neighbors = {sq: [] for sq in range(self.n_positions)}
         for sq in range(self.n_positions):
             row, col = self.sq2pos(sq)
@@ -86,11 +84,11 @@ class Checkers:
         # Black starts at the top of the board
         board = {
             "black": {
-                "men": set(range(12)),
+                "men": set(range(8)),
                 "kings": set(),
             },
             "white": {
-                "men": set(range(32 - 12, 32)),
+                "men": set(range(32 - 8, 32)),
                 "kings": set(),
             },
         }
@@ -112,7 +110,6 @@ class Checkers:
 
     @staticmethod
     def immutable_board(board):
-        # TODO Bitboard representation?
         pieces = (
             frozenset(board["black"]["men"]),
             frozenset(board["black"]["kings"]),
@@ -166,19 +163,29 @@ class Checkers:
             # Remove the captured piece
             to_row, to_col = self.sq2pos(to_sq)
             from_row, from_col = self.sq2pos(from_sq)
-            capture_row, capture_col = (from_row + to_row) / 2, (from_col + to_col) / 2
+            if from_row < to_row:
+                capture_row = to_row - 1
+            else:
+                capture_row = to_row + 1
+            if from_col < to_col:
+                capture_col = to_col - 1
+            else:
+                capture_col = to_col + 1
             capture_sq = self.pos2sq(capture_row, capture_col)
+            killed = False
             for type in ["men", "kings"]:
                 pieces = self._board[self.adversary][type]
                 if capture_sq in pieces:
                     pieces.remove(capture_sq)
+                    killed = True
                     break
             else:
-                assert False, "An opposing piece must be captured."
+                if killed:
+                    assert False, "An opposing piece must be captured."
             # Check for new available jumps for the moved piece before crowning a king
             jumps = self.available_jumps(self._turn, piece_type, to_sq)
             # Switch the turn, if there is no more jumps for the current player
-            switch_turn = len(jumps) == 0
+            switch_turn = len(jumps) == 0 or not killed
 
         # Crowning a king (must end the turn)
         if piece_type == "men":
@@ -209,13 +216,29 @@ class Checkers:
 
     def available_simple_moves(self, player, type, sq):
         simple_moves = []
-        for di in Checkers.legal_dirs[player][type]:
-            next_sq = self.neighbors[sq][di]
-            # There is a neighboring square
-            if next_sq is not None:
-                # Check its occupancy
-                if not self.check_occupancy(next_sq):
-                    simple_moves.append(next_sq)
+        if type == 'men':
+            for di in Checkers.legal_dirs[player][type]:
+                next_sq = self.neighbors[sq][di]
+                # There is a neighboring square
+                if next_sq is not None:
+                    # Check its occupancy
+                    if not self.check_occupancy(next_sq):
+                        simple_moves.append(next_sq)
+        elif type == 'kings':
+            for di in Checkers.legal_dirs[player][type]:
+                to_pos = self.sq2pos(sq)
+                while True:
+                    to_pos = (to_pos[0] + Checkers.dir2del[di][0], to_pos[1] + Checkers.dir2del[di][1])
+                    # Out of bound
+                    if not (0 <= to_pos[0] < self.size and 0 <= to_pos[1] < self.size):
+                        break
+                    to_sq = self.pos2sq(*to_pos)
+                    # Check its occupancy
+                    if not self.check_occupancy(to_sq):
+                        simple_moves.append(to_sq)
+                    else:
+                        break
+
         return simple_moves
 
     def check_occupancy(self, sq, by_players=all_players):
@@ -233,21 +256,44 @@ class Checkers:
         """Returns the available jumps of `player`'s piece of `type` at `sq`."""
         jumps = []
         adversary = "black" if player == "white" else "white"
-        for di in Checkers.legal_dirs[player][type]:
-            capture_sq = self.neighbors[sq][di]
-            # There is a neighboring square
-            if capture_sq is not None:
-                # The square is occupied by the adversary's piece
-                if self.check_occupancy(capture_sq, [adversary]):
-                    # Must jump over two squares in a single direction
-                    next_sq = self.neighbors[capture_sq][di]
-                    if next_sq is not None:
-                        # The square is not occupied
-                        if not self.check_occupancy(next_sq):
-                            jumps.append(next_sq)
+        if type == 'men':
+            for di in Checkers.legal_dirs[player][type]:
+                capture_sq = self.neighbors[sq][di]
+                # There is a neighboring square
+                if capture_sq is not None:
+                    # The square is occupied by the adversary's piece
+                    if self.check_occupancy(capture_sq, [adversary]):
+                        # Must jump over two squares in a single direction
+                        next_sq = self.neighbors[capture_sq][di]
+                        if next_sq is not None:
+                            # The square is not occupied
+                            if not self.check_occupancy(next_sq):
+                                jumps.append(next_sq)
+        elif type == 'kings':
+            for di in Checkers.legal_dirs[player][type]:
+                capture_pos = self.sq2pos(sq)
+                while True:
+                    capture_pos = (capture_pos[0] + Checkers.dir2del[di][0], capture_pos[1] + Checkers.dir2del[di][1])
+                    # Out of bound
+                    if not (0 <= capture_pos[0] < self.size and 0 <= capture_pos[1] < self.size):
+                        break
+                    capture_sq = self.pos2sq(*capture_pos)
+    
+                    if self.check_occupancy(capture_sq, [adversary]):
+                        # Must jump over two squares in a single direction
+                        next_sq = self.neighbors[capture_sq][di]
+                        if next_sq is not None:
+                            # The square is not occupied
+                            if not self.check_occupancy(next_sq):
+                                jumps.append(next_sq)
+                            else:
+                                break
+                        else:
+                            break
         return jumps
 
     def all_jumps(self):
+        # to kill
         if self._last_moved_piece is None:
             jumps = []
             for type in ["men", "kings"]:
@@ -378,18 +424,18 @@ if __name__ == "__main__":
     print(ch.flat_board())
     ch._board["white"]["kings"].add(13)
     ch.print_board()
+    print('white king', ch.available_simple_moves("white", "kings", 13))
     print(ch.neighbors)
     print(ch.available_simple_moves("black", "men", 8))
     print(ch.available_jumps("black", "men", 8))
     print(ch.legal_moves())
-    print(ch.move(8, 17))
     ch.print_board()
     ch.restore_state(state)
 
     # Play a quick game
     ply = 0
     winner = None
-    while winner is None:
+    while winner is None and False:
         # Select a legal move for the current player
         move = ch.legal_moves()[0]
         board, turn, last_moved_piece, moves, winner = ch.move(*move, skip_check=True)
