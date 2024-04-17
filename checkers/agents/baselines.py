@@ -62,11 +62,11 @@ def play_a_game(
         # Update the game
         board, turn, last_moved_piece, moves, winner = checkers.move(from_sq, to_sq)
         ply += 1
-    if winner is None:
-        print("draw")
-    else:
-        print("%s player wins" % winner)
     if is_show_detail:
+        if winner is None:
+            print("draw")
+        else:
+            print("%s player wins" % winner)
         print("total legal moves", tot_moves, "avg branching factor", tot_moves / ply)
     return winner
 
