@@ -50,8 +50,8 @@ def play_a_game(
     while winner is None and ply < max_plies:
         tot_moves += len(moves)
         # The current game state
-        checkers.print_board()
         if is_show_detail:
+            checkers.print_board()
             print(ply, "turn:", turn, "last_moved_piece:", last_moved_piece)
             print("%i legal moves %r" % (len(moves), moves))
         # Select a legal move for the current player
