@@ -84,13 +84,13 @@ class MinimaxPlayer(Player):
         else:
             search_rate = dm / dt
         effective_branch_factor = dm ** (1 / self.search_depth)
-        print(
-            "evaluated %i positions in %.2fs (avg %.2f positions/s) with effective branching factor %.2f"
-            % (dm, dt, search_rate, effective_branch_factor)
-        )
+        # print(
+        #     "evaluated %i positions in %.2fs (avg %.2f positions/s) with effective branching factor %.2f"
+        #     % (dm, dt, search_rate, effective_branch_factor)
+        # )
         self.evaluation_dt += dt
         self.ply += 1
-        print("best_move", best_move)
+        # print("best_move", best_move)
         return best_move
 
     def minimax_search(self, state, alpha, beta, depth, visited_states):
