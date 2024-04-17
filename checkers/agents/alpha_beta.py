@@ -67,7 +67,7 @@ class MinimaxPlayer(Player):
         m0 = self.n_evaluated_positions
         self.simulator.restore_state(state)
         moves = self.simulator.legal_moves()
-        print("legal_move", moves)
+        # print("legal_move", moves)
         if len(moves) == 1:
             # No other choice
             best_move = moves[0]
