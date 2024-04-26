@@ -147,6 +147,8 @@ class Checkers:
         # The move is legal
         switch_turn = True
         # Move the piece
+        num_captured = 0
+        # num_piece_start = self._board[self._turn]["men"].__len__() + self._board[self._turn]["kings"].__len__()
         for type in ["men", "kings"]:
             pieces = self._board[self._turn][type]
             if from_sq in pieces:
@@ -178,6 +180,7 @@ class Checkers:
                 if capture_sq in pieces:
                     pieces.remove(capture_sq)
                     killed = True
+                    num_captured += 1
                     break
             else:
                 if killed:
@@ -198,6 +201,9 @@ class Checkers:
                 self._board[self._turn]["men"].remove(to_sq)
                 self._board[self._turn]["kings"].add(to_sq)
 
+        # num_piece_end = self._board[self._turn]["men"].__len__() + self._board[self._turn]["kings"].__len__()
+        # print(num_piece_start, num_piece_end)
+        # num_captured = num_piece_start - num_piece_end
         if switch_turn:
             self._turn = self.adversary
             self._last_moved_piece = None
@@ -208,7 +214,7 @@ class Checkers:
             winner = self.adversary
         else:
             winner = None
-        return self.board, self.turn, self.last_moved_piece, all_next_moves, winner
+        return self.board, self.turn, self.last_moved_piece, all_next_moves, winner, num_captured
 
     @property
     def adversary(self):

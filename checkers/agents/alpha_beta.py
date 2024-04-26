@@ -11,7 +11,7 @@ import numpy as np
 
 from checkers.game import Checkers
 from checkers.agents import Player
-
+import copy
 
 class MinimaxPlayer(Player):
     """Minimax search with alpha-beta pruning"""
@@ -51,6 +51,7 @@ class MinimaxPlayer(Player):
         # Statistics
         self.n_evaluated_positions = 0
         self.evaluation_dt = 0
+        self.board_move_dict = [] # List<board, move> dict
         self.prunes = defaultdict(lambda: 0)
 
     @staticmethod
@@ -91,6 +92,7 @@ class MinimaxPlayer(Player):
         self.evaluation_dt += dt
         self.ply += 1
         # print("best_move", best_move)
+        self.board_move_dict.append([copy.deepcopy(board), best_move])
         return best_move
 
     def minimax_search(self, state, alpha, beta, depth, visited_states):
@@ -137,7 +139,7 @@ class MinimaxPlayer(Player):
             for move in ordered_moves:
                 # print(self.color == turn, depth, move, state[0])
                 self.simulator.restore_state(state)
-                next_board, next_turn, next_last_moved_piece, next_moves, winner = (
+                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured = (
                     self.simulator.move(*move, skip_check=True)
                 )
                 # print(self.color == turn, depth, move, next_board)
@@ -164,7 +166,7 @@ class MinimaxPlayer(Player):
             extreme_value = beta
             for move in self.rollout_order(moves):
                 self.simulator.restore_state(state)
-                next_board, next_turn, next_last_moved_piece, next_moves, winner = (
+                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured = (
                     self.simulator.move(*move, skip_check=True)
                 )
                 # print(self.color == turn, depth, move, next_board)

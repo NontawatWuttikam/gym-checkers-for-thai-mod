@@ -5,7 +5,7 @@ import numpy as np
 
 from checkers.game import Checkers
 from checkers.agents import Player
-
+from copy import deepcopy
 
 # A random player
 class RandomPlayer(Player):
@@ -36,6 +36,8 @@ def play_a_game(
     white_player_move,
     max_plies=float("inf"),
     is_show_detail=True,
+    black_player=None,
+    white_player=None,
 ):
     # Play a quick game
     players = {
@@ -47,6 +49,7 @@ def play_a_game(
     board, turn, last_moved_piece = checkers.save_state()
     moves = checkers.legal_moves()
     winner = None
+    killed = None
     while winner is None and ply < max_plies:
         tot_moves += len(moves)
         # The current game state
@@ -58,9 +61,41 @@ def play_a_game(
         from_sq, to_sq = players[turn](board, last_moved_piece)
         if is_show_detail:
             print(turn, "moved %i, %i" % (from_sq, to_sq))
-            print()
         # Update the game
-        board, turn, last_moved_piece, moves, winner = checkers.move(from_sq, to_sq)
+        board, turn, last_moved_piece, moves, winner, num_captured = checkers.move(from_sq, to_sq)
+        
+        being_captured_penalty = -150
+        if hasattr(black_player, "modelName") and turn == "white": # if turn == white then fill black state
+            if black_player.modelName == "DeepKILLme":
+                rewardToFill = 0
+                if num_captured == 1:
+                    rewardToFill = 100
+                black_player.memory[-1][2] = deepcopy(board) # fill board next (idx 2) step in the latest timestamp
+                if black_player.memory[-1][3] is None:
+                    black_player.memory[-1][3] = rewardToFill # fill reward (idx 3) in the latest timestamp
+
+        if hasattr(white_player, "modelName") and turn == "black":
+            if white_player.modelName == "DeepKILLme":
+                rewardToFill = 0
+                if num_captured == 1:
+                    rewardToFill = 100
+                white_player.memory[-1][2] = deepcopy(board) # fill board next (idx 2) step in the latest timestamp
+                if white_player.memory[-1][3] is None:
+                    white_player.memory[-1][3] = rewardToFill # fill reward (idx 3) in the latest timestamp
+
+        if hasattr(white_player, "modelName") and turn == "white":
+            if white_player.modelName == "DeepKILLme":
+                if num_captured > 0:
+                    white_player.memory[-1][3] = being_captured_penalty # if black capture white, then the latest move of white sucks, so we penalize them
+        
+        if hasattr(black_player, "modelName") and turn == "black":
+            if black_player.modelName == "DeepKILLme":
+                if num_captured > 0:
+                    black_player.memory[-1][3] = being_captured_penalty # if black capture white, then the latest move of white sucks, so we penalize them
+                        
+        if is_show_detail and hasattr(white_player, "modelName"):
+            if len(white_player.memory): print("whitePlayer Memory", white_player.memory[-1])
+            print()
         ply += 1
     if is_show_detail:
         if winner is None:
