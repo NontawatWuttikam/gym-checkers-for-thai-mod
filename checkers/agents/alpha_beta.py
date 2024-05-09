@@ -139,7 +139,7 @@ class MinimaxPlayer(Player):
             for move in ordered_moves:
                 # print(self.color == turn, depth, move, state[0])
                 self.simulator.restore_state(state)
-                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured = (
+                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured, captured_type = (
                     self.simulator.move(*move, skip_check=True)
                 )
                 # print(self.color == turn, depth, move, next_board)
@@ -166,7 +166,7 @@ class MinimaxPlayer(Player):
             extreme_value = beta
             for move in self.rollout_order(moves):
                 self.simulator.restore_state(state)
-                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured = (
+                next_board, next_turn, next_last_moved_piece, next_moves, winner, num_captured, captured_type = (
                     self.simulator.move(*move, skip_check=True)
                 )
                 # print(self.color == turn, depth, move, next_board)

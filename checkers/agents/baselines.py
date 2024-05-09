@@ -64,34 +64,47 @@ def play_a_game(
         # Update the game
         board, turn, last_moved_piece, moves, winner, num_captured = checkers.move(from_sq, to_sq)
         
-        being_captured_penalty = -150
         if hasattr(black_player, "modelName") and turn == "white": # if turn == white then fill black state
             if black_player.modelName == "DeepKILLme":
-                rewardToFill = 0
+                rewardToFill = 10
+                if winner == "black":
+                    rewardToFill += 100
                 if num_captured == 1:
-                    rewardToFill = 100
+                    rewardToFill += 20
                 black_player.memory[-1][2] = deepcopy(board) # fill board next (idx 2) step in the latest timestamp
                 if black_player.memory[-1][3] is None:
                     black_player.memory[-1][3] = rewardToFill # fill reward (idx 3) in the latest timestamp
 
         if hasattr(white_player, "modelName") and turn == "black":
             if white_player.modelName == "DeepKILLme":
-                rewardToFill = 0
+                rewardToFill = 10
+                if winner == "white":
+                    rewardToFill += 100
                 if num_captured == 1:
-                    rewardToFill = 100
+                    rewardToFill += 20
                 white_player.memory[-1][2] = deepcopy(board) # fill board next (idx 2) step in the latest timestamp
                 if white_player.memory[-1][3] is None:
                     white_player.memory[-1][3] = rewardToFill # fill reward (idx 3) in the latest timestamp
 
         if hasattr(white_player, "modelName") and turn == "white":
             if white_player.modelName == "DeepKILLme":
+                total_penalty = 0
+                if winner == "black":
+                    total_penalty += 1
                 if num_captured > 0:
-                    white_player.memory[-1][3] = being_captured_penalty # if black capture white, then the latest move of white sucks, so we penalize them
+                    total_penalty += 0.5
+                if total_penalty != 0:
+                    white_player.memory[-1][3] = total_penalty # if black capture white, then the latest move of white sucks, so we penalize them
         
         if hasattr(black_player, "modelName") and turn == "black":
             if black_player.modelName == "DeepKILLme":
+                total_penalty = 0
+                if winner == "white":
+                    total_penalty += 1
                 if num_captured > 0:
-                    black_player.memory[-1][3] = being_captured_penalty # if black capture white, then the latest move of white sucks, so we penalize them
+                    total_penalty += 0.5
+                if total_penalty != 0:
+                    black_player.memory[-1][3] = total_penalty # if black capture white, then the latest move of white sucks, so we penalize them
                         
         if is_show_detail and hasattr(white_player, "modelName"):
             if len(white_player.memory): print("whitePlayer Memory", white_player.memory[-1])
